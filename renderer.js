@@ -7,6 +7,7 @@
 })();
 
 // Estado de la aplicación
+// Estado de la aplicación
 let snippets = [];
 let lenguajes = [];
 let currentSnippetId = null;
@@ -46,6 +47,7 @@ const btnNew = document.getElementById('btn-new');
 const btnSave = document.getElementById('btn-save');
 const btnDelete = document.getElementById('btn-delete');
 const btnCancel = document.getElementById('btn-cancel');
+const btnRestore = document.getElementById('btn-restore');
 const btnSettings = document.getElementById('btn-settings');
 
 // Botón Copiar y Editor
@@ -69,7 +71,10 @@ async function loadDataFromDisk() {
 
 async function loadAppConfig() {
     const config = await window.api.readAppConfig();
-    appConfig = config && typeof config === 'object' ? config : { autor: '' };
+    appConfig = config && typeof config === 'object' ? config : { autor: '', idioma: 'es' };
+    if (typeof applyLanguage === 'function') {
+        applyLanguage(appConfig.idioma || 'es');
+    }
 }
 
 async function refreshFormData(showMessage = false) {
@@ -165,6 +170,7 @@ function switchView(view, folderName = null) {
 function renderFolders(searchFolderTerm = '') {
     folderList.innerHTML = '';
     const activeLangs = lenguajes.filter(l => l.Activo);
+    const showDeleted = localStorage.getItem('show-deleted-notes') === 'true';
     
     // Contar snippets activos por lenguaje
     const counts = {};
@@ -213,11 +219,32 @@ function renderFolders(searchFolderTerm = '') {
         
         folderList.appendChild(div);
     });
+
+    if (showDeleted) {
+        const deletedCount = snippets.filter(s => s.Activo === false).length;
+        const div = document.createElement('div');
+        div.className = 'folder-item virtual-folder';
+        div.style.borderLeft = '3px solid #f44336';
+        div.innerHTML = `
+            <div class="folder-info">
+                <i class="ri-delete-bin-line" style="margin-right: 8px; color: #f44336;"></i>
+                <span>Eliminados</span>
+                <span class="folder-count" style="background: #f44336; color: white;">${deletedCount}</span>
+            </div>
+        `;
+        div.addEventListener('click', () => {
+            switchView('snippets', 'Eliminados');
+            resetForm();
+        });
+        folderList.appendChild(div);
+    }
 }
 
 // Eliminar Carpeta
 async function deleteFolder(id) {
-    if (confirm("¿Estás seguro de eliminar este lenguaje? Sus snippets no serán borrados físicamente pero esta carpeta desaparecerá.")) {
+    const langCode = appConfig.idioma || 'es';
+    const msg = window.getTranslation ? window.getTranslation(langCode, 'confirm_delete_folder') : "¿Estás seguro de eliminar este cuaderno? Sus notas no serán borradas físicamente pero desaparecerá de la lista.";
+    if (confirm(msg)) {
         const lang = lenguajes.find(l => l.ID === id);
         if (lang) {
             lang.Activo = false;
@@ -334,7 +361,7 @@ btnModalAddLang.addEventListener('click', async (e) => {
         if (!exists.Activo) {
             exists.Activo = true;
         } else {
-            showToast('¡Este lenguaje ya existe y está activo!', 'error');
+            showToast('¡Este cuaderno ya existe y está activo!', 'error');
             return;
         }
     } else {
@@ -349,7 +376,7 @@ btnModalAddLang.addEventListener('click', async (e) => {
         renderLanguages();
         renderFolders();
     } else {
-        showToast("Error al guardar lenguaje", 'error');
+        showToast("Error al guardar cuaderno", 'error');
     }
 });
 
@@ -384,8 +411,12 @@ function renderSnippets(searchTerm = '') {
     snippetList.innerHTML = '';
     
     const filtered = snippets.filter(s => {
-        if (!s.Activo) return false;
-        if (currentFolder && s.Lenguaje.toLowerCase() !== currentFolder.toLowerCase()) return false;
+        if (currentFolder === 'Eliminados') {
+            if (s.Activo !== false) return false;
+        } else {
+            if (!s.Activo) return false;
+            if (currentFolder && s.Lenguaje.toLowerCase() !== currentFolder.toLowerCase()) return false;
+        }
         
         if (searchTerm) {
             const normalizedSearch = normalizeString(searchTerm);
@@ -425,7 +456,7 @@ function renderSnippets(searchTerm = '') {
 }
 
 // Seleccionar un Snippet
-function selectSnippet(id) {
+async function selectSnippet(id) {
     const snippet = snippets.find(s => s.ID === id);
     if (!snippet) return;
 
@@ -435,12 +466,20 @@ function selectSnippet(id) {
     inputPurpose.value = snippet.Proposito;
     inputAuthor.value = snippet.Autor || appConfig.autor || '';
     inputLanguage.value = snippet.Lenguaje;
-    inputCode.value = snippet.Codigo;
 
-    btnDelete.style.display = 'block';
+    // Cargar contenido enriquecido con portabilidad
+    const mediaDirUrl = await window.api.getMediaUrl('');
+    let content = snippet.Codigo || '';
+    if (mediaDirUrl) {
+        content = content.replace(/##MEDIA_DIR##\//g, mediaDirUrl);
+    }
+    inputCode.innerHTML = content;
+
+    const isDeleted = snippet.Activo === false;
+    btnDelete.style.display = isDeleted ? 'none' : 'block';
+    if (btnRestore) btnRestore.style.display = isDeleted ? 'block' : 'none';
     
     renderSnippets(searchInput.value);
-    updateLineNumbers();
 }
 
 // Funcionalidad "Nuevo" / "Cancelar"
@@ -452,13 +491,7 @@ function resetForm() {
     inputPurpose.value = '';
     inputAuthor.value = appConfig.autor || '';
     inputLanguage.value = currentFolder || ''; // Prellenar con la carpeta actual si estamos en una
-    inputCode.value = '';
-    
-    inputTitle.disabled = false;
-    inputPurpose.disabled = false;
-    inputAuthor.disabled = false;
-    inputLanguage.disabled = false;
-    inputCode.disabled = false;
+    inputCode.innerHTML = ''; // Limpiar div
 
     btnDelete.style.display = 'none';
     if(currentFolder) inputTitle.focus();
@@ -466,7 +499,6 @@ function resetForm() {
     if (snippetsView.style.display !== 'none') {
         renderSnippets(searchInput.value);
     }
-    updateLineNumbers();
 }
 
 // Procesar el lenguaje ingresado (Simplificado)
@@ -491,16 +523,26 @@ async function saveSnippet() {
     const author = inputAuthor.value.trim() || appConfig.autor || '';
     const rawLanguage = inputLanguage.value.trim();
     const formattedLanguage = formatLanguage(rawLanguage);
-    const code = inputCode.value;
+    
+    // Convertir rutas absolutas a portables antes de guardar
+    const codeHtml = inputCode.innerHTML;
+    const mediaDirUrl = await window.api.getMediaUrl('');
+    let portableCode = codeHtml;
+    
+    if (mediaDirUrl) {
+        // Escapar caracteres especiales para la expresión regular de la URL
+        const regex = new RegExp(mediaDirUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+        portableCode = codeHtml.replace(regex, '##MEDIA_DIR##/');
+    }
 
     if (currentSnippetId) {
         const index = snippets.findIndex(s => s.ID === currentSnippetId);
         if (index !== -1) {
-            snippets[index] = { ...snippets[index], Titulo: title, Proposito: purpose, Autor: author, Lenguaje: formattedLanguage, Codigo: code };
+            snippets[index] = { ...snippets[index], Titulo: title, Proposito: purpose, Autor: author, Lenguaje: formattedLanguage, Codigo: portableCode };
         }
     } else {
         const newId = snippets.length > 0 ? Math.max(...snippets.map(s => s.ID)) + 1 : 1;
-        snippets.push({ ID: newId, Titulo: title, Proposito: purpose, Autor: author, Lenguaje: formattedLanguage, Codigo: code, Activo: true });
+        snippets.push({ ID: newId, Titulo: title, Proposito: purpose, Autor: author, Lenguaje: formattedLanguage, Codigo: portableCode, Activo: true });
         currentSnippetId = newId;
     }
 
@@ -514,7 +556,7 @@ async function saveSnippet() {
         if (snippetsView.style.display !== 'none') {
             renderSnippets(searchInput.value);
         }
-        showToast("¡Snippet guardado con éxito!", 'success');
+        showToast("¡Nota guardada con éxito!", 'success');
     } else {
         showToast("Error al guardar: " + result.error, 'error');
     }
@@ -523,7 +565,9 @@ async function saveSnippet() {
 // Eliminar
 async function deleteSnippet() {
     if (!currentSnippetId) return;
-    if (confirm("¿Estás seguro de eliminar este snippet?")) {
+    const langCode = appConfig.idioma || 'es';
+    const msg = window.getTranslation ? window.getTranslation(langCode, 'confirm_delete_note') : "¿Estás seguro de eliminar esta nota?";
+    if (confirm(msg)) {
         const index = snippets.findIndex(s => s.ID === currentSnippetId);
         if (index !== -1) {
             snippets[index].Activo = false;
@@ -538,21 +582,108 @@ async function deleteSnippet() {
     }
 }
 
-// Lógica de editor de código (Líneas y Copiar)
-function updateLineNumbers() {
-    const lines = inputCode.value.split('\n').length;
-    const count = lines > 0 ? lines : 1;
-    lineNumbersDiv.innerHTML = Array(count).fill(0).map((_, i) => i + 1).join('<br>');
+// Restaurar Nota
+if (btnRestore) {
+    btnRestore.addEventListener('click', async () => {
+        if (!currentSnippetId) return;
+        const index = snippets.findIndex(s => s.ID === currentSnippetId);
+        if (index !== -1) {
+            snippets[index].Activo = true;
+            const result = await window.api.writeData('snippets', snippets);
+            if (result.success) {
+                showToast("¡Nota restaurada con éxito!", 'success');
+                renderFolders(); // Refrescar conteos
+                selectSnippet(currentSnippetId); // Actualizar barra de edición
+            } else {
+                showToast("Error al restaurar: " + result.error, 'error');
+            }
+        }
+    });
 }
 
-inputCode.addEventListener('scroll', () => { lineNumbersDiv.scrollTop = inputCode.scrollTop; });
-inputCode.addEventListener('input', updateLineNumbers);
+// Función para insertar HTML en la posición del cursor de forma segura
+function insertHTMLAtCursor(html) {
+    let sel, range;
+    if (window.getSelection) {
+        sel = window.getSelection();
+        if (sel.getRangeAt && sel.rangeCount) {
+            range = sel.getRangeAt(0);
+            range.deleteContents();
+            let el = document.createElement("div");
+            el.innerHTML = html;
+            let frag = document.createDocumentFragment(), node, lastNode;
+            while ( (node = el.firstChild) ) {
+                lastNode = frag.appendChild(node);
+            }
+            range.insertNode(frag);
+            if (lastNode) {
+                range = range.cloneRange();
+                range.setStartAfter(lastNode);
+                range.collapse(true);
+                sel.removeAllRanges();
+                sel.addRange(range);
+            }
+        }
+    }
+}
+
+// Interceptar Peggy de Imagenes en el editor contenteditable
+inputCode.addEventListener('paste', async (e) => {
+    const types = e.clipboardData ? e.clipboardData.types : [];
+    
+    // Si viene contenido HTML rico, sanitarizar antes de insertar para mantener coherencia
+    if (types.includes('text/html')) {
+        e.preventDefault();
+        const html = e.clipboardData.getData('text/html');
+        
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = html;
+        
+        // Eliminar font-size e inline font-family para que herede las clases CSS
+        tempDiv.querySelectorAll('[style]').forEach(el => {
+            el.style.fontSize = ''; 
+            el.style.fontFamily = ''; 
+        });
+        
+        document.execCommand('insertHTML', false, tempDiv.innerHTML);
+        return;
+    }
+
+    if (types.includes('text/rtf')) {
+        return; 
+    }
+
+    const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+
+    for (const item of items) {
+        if (item.type.indexOf('image') !== -1) {
+            e.preventDefault(); // Prevenir pegado por defecto del clipboard
+            const blob = item.getAsFile();
+            const arrayBuffer = await blob.arrayBuffer();
+            
+            // Determinar extensión
+            let ext = '.png';
+            if (item.type === 'image/jpeg') ext = '.jpg';
+            if (item.type === 'image/gif') ext = '.gif';
+
+            const result = await window.api.saveMediaBuffer(arrayBuffer, ext);
+            if (result.success) {
+                const url = await window.api.getMediaUrl(result.fileName);
+                if (url) {
+                    insertHTMLAtCursor(`<img src="${url}" class="note-inline-image" draggable="false">`);
+                }
+            } else {
+                showToast('Error pegando imagen: ' + result.error, 'error');
+            }
+        }
+    }
+});
 
 btnCopy.addEventListener('click', async (e) => {
     e.preventDefault();
-    if (!inputCode.value) return;
+    if (!inputCode.innerText) return;
     try {
-        await navigator.clipboard.writeText(inputCode.value);
+        await navigator.clipboard.writeText(inputCode.innerText);
         const originalHtml = btnCopy.innerHTML;
         btnCopy.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" stroke="#4ade80" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
         btnCopy.style.borderColor = '#4ade80';
@@ -569,6 +700,127 @@ btnRefresh.addEventListener('click', async (e) => {
 btnSave.addEventListener('click', (e) => { e.preventDefault(); saveSnippet(); });
 btnDelete.addEventListener('click', (e) => { e.preventDefault(); deleteSnippet(); });
 btnCancel.addEventListener('click', (e) => { e.preventDefault(); resetForm(); });
+
+// --- FUNCIONALIDAD BARRA DE HERRAMIENTAS (RICH TEXT) ---
+const btnBold = document.getElementById('btn-bold');
+const btnH2 = document.getElementById('btn-h2');
+const btnH3 = document.getElementById('btn-h3');
+const btnP = document.getElementById('btn-p');
+const selectFontSize = document.getElementById('select-font-size');
+const inputForeColor = document.getElementById('input-forecolor');
+const btnLink = document.getElementById('btn-link');
+
+if (btnBold) {
+    btnBold.addEventListener('mousedown', (e) => {
+        e.preventDefault(); // Prevenir pérdida de foco
+        document.execCommand('bold', false, null);
+    });
+}
+
+if (btnH2) {
+    btnH2.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        document.execCommand('formatBlock', false, '<h1>');
+        if (selectFontSize) selectFontSize.value = '5'; // Título - H1
+    });
+}
+
+if (btnH3) {
+    btnH3.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        document.execCommand('formatBlock', false, '<h2>');
+        if (selectFontSize) selectFontSize.value = '4'; // Sub Título - H2
+    });
+}
+
+if (btnP) {
+    btnP.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        document.execCommand('formatBlock', false, '<div>');
+        if (selectFontSize) selectFontSize.value = '3'; // Normal
+        // Aplicar color negro por defecto si está en modo claro
+        const isLight = document.body.getAttribute('data-theme') === 'light';
+        document.execCommand('foreColor', false, isLight ? '#101010' : '#cccccc');
+    });
+}
+
+if (selectFontSize) {
+    selectFontSize.addEventListener('change', (e) => {
+        const size = e.target.value;
+        if (size) {
+            document.execCommand('fontSize', false, size);
+            selectFontSize.value = '3'; 
+        }
+    });
+}
+
+if (inputForeColor) {
+    inputForeColor.addEventListener('input', (e) => {
+        document.execCommand('foreColor', false, e.target.value);
+    });
+}
+
+if (btnLink) {
+    btnLink.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        const url = prompt("Introduce la URL (ej: https://google.com):");
+        if (url) {
+            const formattedUrl = url.startsWith('http') ? url : 'https://' + url;
+            document.execCommand('createLink', false, formattedUrl);
+        }
+    });
+}
+
+const btnSelectAll = document.getElementById('btn-select-all');
+if (btnSelectAll) {
+    btnSelectAll.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        if (inputCode) {
+            inputCode.focus();
+            document.execCommand('selectAll');
+        }
+    });
+}
+
+const btnClearFormat = document.getElementById('btn-clear-format');
+if (btnClearFormat) {
+    btnClearFormat.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        if (inputCode) {
+            const selection = window.getSelection();
+            const imgs = inputCode.querySelectorAll('img');
+            const savedStyles = [];
+            
+            // Respaldar estilos de imágenes en la selección
+            imgs.forEach(img => {
+                if (selection.containsNode(img, true)) {
+                    savedStyles.push({ img, style: img.getAttribute('style') });
+                }
+            });
+            
+            document.execCommand('removeFormat');
+            document.execCommand('formatBlock', false, '<div>');
+            
+            // Restaurar estilos
+            savedStyles.forEach(({ img, style }) => {
+                if (style) img.setAttribute('style', style);
+            });
+        }
+    });
+}
+
+// Interceptar clics en enlaces dentro del editor
+if (inputCode) {
+    inputCode.addEventListener('click', (e) => {
+        if (e.target.tagName === 'A') {
+            e.preventDefault();
+            const url = e.target.getAttribute('href');
+            if (url && window.api && window.api.openExternal) {
+                window.api.openExternal(url);
+            }
+        }
+    });
+}
 
 btnBackFolders.addEventListener('click', (e) => { e.preventDefault(); switchView('folders'); resetForm(); });
 btnSettings.addEventListener('click', async (e) => {
@@ -644,5 +896,149 @@ if (btnThemeToggle) {
     });
 }
 
+// --- MODO PANTALLA COMPLETA (ZEN) ---
+const btnFullscreen = document.getElementById('btn-fullscreen');
+const editorWrapper = document.querySelector('.code-editor-wrapper');
+
+if (btnFullscreen && editorWrapper) {
+    btnFullscreen.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        const isFullscreen = editorWrapper.classList.toggle('fullscreen');
+        const icon = btnFullscreen.querySelector('i');
+        if (icon) {
+            icon.className = isFullscreen ? 'ri-fullscreen-exit-line' : 'ri-fullscreen-line';
+        }
+        
+        // Esconder el resizer si está abierto para evitar bugs visuales
+        if (typeof hideResizeOverlay === 'function') {
+            hideResizeOverlay();
+        }
+    });
+}
+
 // Iniciar app
 init();
+
+// --- FUNCIONALIDAD ACTIVA DE LA BARRA DE HERRAMIENTAS ---
+document.addEventListener('selectionchange', () => {
+    const isBold = document.queryCommandState('bold');
+    if (btnBold) btnBold.classList.toggle('active', isBold);
+
+    const blockType = document.queryCommandValue('formatBlock');
+    // btnH2 ahora actúa como H1
+    if (btnH2) btnH2.classList.toggle('active', blockType === 'h1');
+    // btnH3 ahora actúa como H2
+    if (btnH3) btnH3.classList.toggle('active', blockType === 'h2');
+
+    if (selectFontSize) {
+        if (blockType === 'h1') selectFontSize.value = '5';
+        else if (blockType === 'h2') selectFontSize.value = '4';
+        else selectFontSize.value = '3';
+    }
+});
+
+// --- REDIMENSIONADO DE IMÁGENES VIA OVERLAY (4 Puntos) ---
+let activeResizingImage = null;
+
+// Crear el contenedor Overlay y los 4 tiradores
+const resizerOverlay = document.createElement('div');
+resizerOverlay.id = 'image-resizer-overlay';
+
+const handles = ['tl', 'tr', 'bl', 'br'];
+handles.forEach(type => {
+    const h = document.createElement('div');
+    h.className = `resize-handle ${type}`;
+    h.setAttribute('data-handle', type);
+    resizerOverlay.appendChild(h);
+});
+document.body.appendChild(resizerOverlay);
+
+    if (inputCode) {
+        inputCode.addEventListener('click', (e) => {
+            if (e.target.tagName === 'IMG') {
+                showResizeOverlay(e.target);
+            } else {
+                hideResizeOverlay();
+            }
+        });
+
+    inputCode.addEventListener('scroll', hideResizeOverlay);
+}
+
+function showResizeOverlay(img) {
+    activeResizingImage = img;
+    const rect = img.getBoundingClientRect();
+    resizerOverlay.style.display = 'block';
+    resizerOverlay.style.width = rect.width + 'px';
+    resizerOverlay.style.height = rect.height + 'px';
+    resizerOverlay.style.left = (rect.left + window.scrollX) + 'px';
+    resizerOverlay.style.top = (rect.top + window.scrollY) + 'px';
+}
+
+function hideResizeOverlay() {
+    activeResizingImage = null;
+    resizerOverlay.style.display = 'none';
+}
+
+let isDraggingHandle = false;
+let currentHandleType = '';
+let startX, startWidth;
+
+resizerOverlay.addEventListener('mousedown', (e) => {
+    if (!activeResizingImage || !e.target.classList.contains('resize-handle')) return;
+    e.preventDefault();
+    isDraggingHandle = true;
+    currentHandleType = e.target.getAttribute('data-handle');
+    startX = e.clientX;
+    const rect = activeResizingImage.getBoundingClientRect();
+    startWidth = rect.width;
+});
+
+window.addEventListener('mousemove', (e) => {
+    if (!isDraggingHandle || !activeResizingImage) return;
+    const deltaX = e.clientX - startX;
+    let newWidth;
+    
+    // Si arrastras desde la derecha (br, tr), aumenta ancho
+    if (currentHandleType === 'br' || currentHandleType === 'tr') {
+        newWidth = Math.max(50, startWidth + deltaX);
+    } else { // tl, bl (arrastrar a la izquierda expande)
+        newWidth = Math.max(50, startWidth - deltaX);
+    }
+    
+    activeResizingImage.style.width = newWidth + 'px';
+    activeResizingImage.style.height = 'auto'; // Mantener aspect ratio
+    showResizeOverlay(activeResizingImage); // Sincronizar posición del overlay
+});
+
+window.addEventListener('mouseup', () => {
+    isDraggingHandle = false;
+});
+
+// Recargar al enfocar la ventana (por si se cambiaron configuraciones en otra ventana)
+window.addEventListener('focus', async () => {
+    if (typeof loadDataFromDisk === 'function') {
+        await loadDataFromDisk();
+        renderFolders();
+        if (currentFolder === 'Eliminados') {
+            const searchInput = document.getElementById('search-input');
+            renderSnippets(searchInput ? searchInput.value : '');
+        }
+    }
+});
+
+function applyLanguage(lang) {
+    if (!window.getTranslation) return;
+    document.title = window.getTranslation(lang, 'title');
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        const translation = window.getTranslation(lang, key);
+        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+            el.placeholder = translation;
+        } else {
+            el.innerText = translation;
+        }
+    });
+}
+
+// Fin del archivo

@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Código Snippets</title>
+    <title>Eitrion Notas</title>
     <link rel="stylesheet" href="styles.css">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
 </head>
 <body>
     <div class="app-container">
@@ -15,11 +16,11 @@
                 <div class="add-folder-container">
                     <button id="btn-manage-languages" class="btn btn-secondary w-100" style="width: 100%; justify-content: center; display: flex; align-items: center; gap: 8px;">
                         <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-                        Gestionar Lenguajes
+                        <span data-i18n="btn_manage_languages">Gestionar Cuadernos</span>
                     </button>
                 </div>
                 <div class="search-container">
-                    <input type="text" id="search-folder-input" placeholder="Buscar lenguaje..." autocomplete="off">
+                    <input type="text" id="search-folder-input" placeholder="Buscar cuaderno..." autocomplete="off" data-i18n="search_folder">
                 </div>
                 <div id="folder-list" class="folder-list">
                     <!-- Lenguajes/Carpetas se inyectan aquí -->
@@ -29,13 +30,13 @@
             <!-- VISTA DE SNIPPETS (INTERNA) -->
             <div id="snippets-view" class="view-panel" style="display: none;">
                 <div class="view-header">
-                    <button id="btn-back-folders" class="btn-back" title="Volver a los lenguajes">
+                    <button id="btn-back-folders" class="btn-back" title="Volver a los cuadernos">
                         <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-                        <span id="current-folder-name">Lenguaje</span>
+                        <span id="current-folder-name">Cuaderno</span>
                     </button>
                 </div>
                 <div class="search-container">
-                    <input type="text" id="search-input" placeholder="Buscar snippet..." autocomplete="off">
+                    <input type="text" id="search-input" placeholder="Buscar nota..." autocomplete="off">
                 </div>
                 <div id="snippet-list" class="snippet-list">
                     <!-- Los snippets se inyectan aquí -->
@@ -47,7 +48,7 @@
                 <div class="footer-actions">
                     <button id="btn-settings" class="btn-settings-footer" title="Configuración">
                         <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-                        <span>Configuración</span>
+                        <span data-i18n="btn_settings">Configuración</span>
                     </button>
                     <button id="btn-theme-toggle" class="btn-theme-toggle" title="Cambiar tema">
                         <!-- Ícono luna (modo oscuro activo) -->
@@ -57,8 +58,8 @@
                     </button>
                 </div>
                 <div id="btn-about" class="sidebar-copyright" title="Ver propósito del sistema">
-                    <span>Código Snippets © 2026</span><br>
-                    <span>Todos los derechos reservados</span>
+                    <span>Eitrion Notas © 2026</span><br>
+                    <span data-i18n="copyright">Todos los derechos reservados</span>
                 </div>
             </div>
         </aside>
@@ -66,13 +67,14 @@
         <!-- Panel Derecho: Editor -->
         <main class="editor-panel">
             <header class="editor-header">
-                <h2>Gestor de Snippets</h2>
+                <h2 data-i18n="header_title">Gestor de Notas</h2>
                 <div class="action-buttons">
-                    <button id="btn-refresh" class="btn btn-secondary" title="Recargar datos del formulario (Ctrl+R)">Recargar</button>
-                    <button id="btn-new" class="btn btn-secondary">Nuevo</button>
-                    <button id="btn-save" class="btn btn-primary">Guardar</button>
-                    <button id="btn-delete" class="btn btn-danger" style="display: none;">Eliminar</button>
-                    <button id="btn-cancel" class="btn btn-secondary">Cancelar</button>
+                    <button id="btn-refresh" class="btn btn-secondary" title="Recargar datos del formulario (Ctrl+R)" data-i18n="btn_refresh">Recargar</button>
+                    <button id="btn-new" class="btn btn-secondary" data-i18n="btn_new">Nuevo</button>
+                    <button id="btn-save" class="btn btn-primary" data-i18n="btn_save">Guardar</button>
+                    <button id="btn-delete" class="btn btn-danger" style="display: none;" data-i18n="btn_delete">Eliminar</button>
+                    <button id="btn-restore" class="btn" style="display: none; background-color: #28a745; color: white;" data-i18n="btn_restore">Restaurar</button>
+                    <button id="btn-cancel" class="btn btn-secondary" data-i18n="btn_cancel">Cancelar</button>
                 </div>
             </header>
 
@@ -80,35 +82,53 @@
                 <input type="hidden" id="snippet-id">
                 
                 <div class="form-group">
-                    <label for="snippet-title">Título</label>
-                    <input type="text" id="snippet-title" required placeholder="Ej: CONEXIÓN A BD">
+                    <label for="snippet-title" data-i18n="label_title">Título</label>
+                    <input type="text" id="snippet-title" required placeholder="Ej: CONEXIÓN A BD" data-i18n="placeholder_title">
                 </div>
 
                 <div class="form-group">
-                    <label for="snippet-purpose">Propósito</label>
-                    <textarea id="snippet-purpose" rows="3" required placeholder="Ej: Conectar a SQL Server" spellcheck="false"></textarea>
+                    <label for="snippet-purpose" data-i18n="label_purpose">Propósito</label>
+                    <textarea id="snippet-purpose" rows="3" required placeholder="Ej: Conectar a SQL Server" spellcheck="false" data-i18n="placeholder_purpose"></textarea>
+                </div>
+
+
+                <div class="form-group">
+                    <label for="snippet-author" data-i18n="label_author">Autor</label>
+                    <input type="text" id="snippet-author" required placeholder="Autor de la nota" data-i18n="placeholder_author">
                 </div>
 
                 <div class="form-group">
-                    <label for="snippet-author">Autor</label>
-                    <input type="text" id="snippet-author" required placeholder="Autor del snippet">
-                </div>
-
-                <div class="form-group">
-                    <label for="snippet-language">Lenguaje</label>
-                    <input type="text" id="snippet-language" list="language-list" required placeholder="Ej: vb, ps1, js...">
+                    <label for="snippet-language" data-i18n="label_language">Cuaderno</label>
+                    <input type="text" id="snippet-language" list="language-list" required placeholder="Ej: Notas Personales, Trabajo..." data-i18n="placeholder_language">
                     <datalist id="language-list">
                         <!-- Lenguajes se inyectan aquí -->
                     </datalist>
                 </div>
 
                 <div class="form-group code-group">
-                    <label for="snippet-code">Snippet</label>
-                    <div class="code-editor-wrapper">
-                        <div id="line-numbers" class="line-numbers">1</div>
-                        <textarea id="snippet-code" required spellcheck="false" placeholder="Escribe o pega el código aquí..."></textarea>
-                        <button id="btn-copy" type="button" class="btn-copy" title="Copiar código">
-                            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    <label for="snippet-code" data-i18n="placeholder_code">Nota</label>
+                    <div class="code-editor-wrapper" style="flex-direction: column;">
+                        <div class="editor-toolbar">
+                            <button id="btn-select-all" type="button" class="toolbar-btn" title="Seleccionar Todo"><i class="ri-star-line"></i></button>
+                            <button id="btn-bold" type="button" class="toolbar-btn" title="Negrita"><i class="ri-bold"></i></button>
+                            <button id="btn-h2" type="button" class="toolbar-btn" title="Título (H1)"><i class="ri-h-1"></i></button>
+                            <button id="btn-h3" type="button" class="toolbar-btn" title="Subtítulo (H2)"><i class="ri-h-2"></i></button>
+                            <button id="btn-p" type="button" class="toolbar-btn" title="Normal"><i class="ri-paragraph"></i></button>
+                            <select id="select-font-size" class="toolbar-select" title="Tamaño de Fuente">
+                                <option value="3">Normal - Párrafo</option>
+                                <option value="4">Sub Título - H2</option>
+                                <option value="5">Título - H1</option>
+                            </select>
+                            <label for="input-forecolor" class="toolbar-btn" title="Color de Texto"><i class="ri-font-color"></i></label>
+                            <input type="color" id="input-forecolor" style="opacity: 0; position: absolute; width: 1px; height: 1px; padding: 0; border: none;" value="#cccccc">
+                            <button id="btn-link" type="button" class="toolbar-btn" title="Insertar Enlace"><i class="ri-link"></i></button>
+                            <button id="btn-clear-format" type="button" class="toolbar-btn" title="Limpiar Formato"><i class="ri-eraser-line"></i></button>
+                            <button id="btn-fullscreen" type="button" class="toolbar-btn" title="Pantalla Completa"><i class="ri-fullscreen-line"></i></button>
+                            <button id="btn-copy" type="button" class="toolbar-btn" title="Copiar nota"><i class="ri-file-copy-line"></i></button>
+                        </div>
+                        <div id="snippet-code" contenteditable="true" class="rich-editor" placeholder="Escribe o pega aquí tu nota..." data-i18n="placeholder_code"></div>
+                    </div>
+                </div>
                         </button>
                     </div>
                 </div>
@@ -120,14 +140,14 @@
     <div id="language-modal" class="modal-overlay" style="display: none;">
         <div class="modal-content language-manager-modal">
             <div class="modal-header">
-                <h3>Gestor de Lenguajes</h3>
+                <h3>Gestor de Cuadernos</h3>
                 <button id="btn-close-lang-modal" class="btn-icon" title="Cerrar">
                     <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                 </button>
             </div>
             <div class="modal-body">
                 <div class="add-language-form">
-                    <input type="text" id="modal-new-lang-input" placeholder="Nombre del nuevo lenguaje...">
+                    <input type="text" id="modal-new-lang-input" placeholder="Nombre del nuevo cuaderno...">
                     <button id="btn-modal-add-lang" class="btn btn-primary">Agregar</button>
                 </div>
                 <div class="table-container">
@@ -150,7 +170,7 @@
     
     <!-- Modal Acerca De -->
     <div id="about-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-content about-modal" style="max-width: 400px; text-align: center;">
+        <div class="modal-content about-modal" style="max-width: 500px; text-align: center;">
             <div class="modal-header">
                 <h3>Acerca de</h3>
                 <button id="btn-close-about-modal" class="btn-icon" title="Cerrar">
@@ -159,7 +179,7 @@
             </div>
             <div class="modal-body" style="padding: 30px 20px;">
                 <p style="margin-bottom: 15px; font-size: 15px; line-height: 1.5; color: var(--text-primary);">
-                    Este sistema ha sido creado por <strong>Ender Jonel Guevara Narea</strong>, bajo la marca personal <strong>eitrion</strong> para ayudar a programadores a organizar sus códigos localmente.
+                    Este sistema ha sido creado por <strong>Ender Jonel Guevara Narea</strong>, bajo la marca personal <strong>eitrion</strong> para ayudar a programadores a organizar sus notas localmente.
                 </p>
                 <p style="margin-bottom: 12px; font-size: 13px; color: var(--text-secondary);">
                     🌐 <a href="https://eitrion.com" target="_blank" style="color: var(--accent-color); text-decoration: none;">eitrion.com</a>
@@ -167,12 +187,42 @@
                     ✉️ <a href="mailto:ender.guevaran@eitrion.com" style="color: var(--accent-color); text-decoration: none;">ender.guevaran@eitrion.com</a>
                 </p>
                 <p style="font-size: 12px; color: var(--text-secondary);">
-                    Código Snippets - Todos los derechos reservados © 2026
+                    Eitrion Notas - Todos los derechos reservados © 2026
                 </p>
             </div>
         </div>
     </div>
+    <!-- Modal URL de Media -->
+    <div id="url-media-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 420px;">
+            <div class="modal-header">
+                <h3>Agregar imagen/GIF por URL</h3>
+                <button id="btn-close-url-modal" class="btn-icon" title="Cerrar">
+                    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="modal-body" style="padding: 20px; gap: 12px;">
+                <p style="font-size: 13px; color: var(--text-secondary);">Pega la URL de una imagen o GIF (ej. de Giphy, Tenor, Imgur, etc.)</p>
+                <div class="add-language-form">
+                    <input type="url" id="url-media-input" placeholder="https://media.giphy.com/..." autocomplete="off">
+                    <button id="btn-confirm-url-media" class="btn btn-primary">Agregar</button>
+                </div>
+                <div id="url-media-preview" class="url-media-preview" style="display:none;">
+                    <img id="url-media-preview-img" src="" alt="Vista previa" style="max-width:100%; max-height:160px; object-fit:contain; border-radius:6px;">
+                </div>
+            </div>
+        </div>
+    </div>
 
+    <!-- Lightbox -->
+    <div id="media-lightbox" class="media-lightbox" style="display: none;">
+        <button id="btn-lightbox-close" class="lightbox-close" title="Cerrar">
+            <svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+        <img id="lightbox-img" src="" alt="" class="lightbox-img">
+    </div>
+
+    <script src="translations.js"></script>
     <script src="renderer.js"></script>
 </body>
 </html>

@@ -57,7 +57,7 @@ body {
 
 /* SIDEBAR (Panel Izquierdo) */
 .sidebar {
-    width: 320px;
+    width: 256px;
     background-color: var(--sidebar-bg);
     border-right: 1px solid var(--panel-border);
     display: flex;
@@ -195,6 +195,10 @@ body {
     background-color: #2a2d2e;
 }
 
+body[data-theme="light"] .view-header {
+    background-color: var(--sidebar-bg);
+}
+
 .btn-back {
     background: none;
     border: none;
@@ -250,6 +254,7 @@ body {
     display: flex;
     flex-direction: column;
     padding: 20px;
+    min-width: 0;
 }
 
 .editor-header {
@@ -259,6 +264,8 @@ body {
     margin-bottom: 20px;
     padding-bottom: 15px;
     border-bottom: 1px solid var(--panel-border);
+    flex-wrap: wrap;
+    gap: 10px;
 }
 
 .editor-header h2 {
@@ -298,6 +305,7 @@ body {
 .action-buttons {
     display: flex;
     gap: 10px;
+    flex-wrap: wrap;
 }
 
 .btn {
@@ -327,6 +335,7 @@ body {
     flex-grow: 1;
     gap: 15px;
     min-height: 0;
+    min-width: 0;
 }
 
 .form-group {
@@ -463,7 +472,7 @@ body {
     background: #4f4f4f;
 }
 
-/* MODAL GESTOR DE LENGUAJES */
+/* MODAL GESTOR DE CUADERNOS */
 .modal-overlay {
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
@@ -640,3 +649,211 @@ body {
     border-color: var(--accent-color);
     background-color: var(--item-hover);
 }
+
+/* ============================================================
+   BARRA DE HERRAMIENTAS Y EDITOR DE NOTAS
+   ============================================================ */
+
+.editor-toolbar {
+    display: flex;
+    gap: 8px;
+    padding: 8px 12px;
+    background-color: var(--sidebar-bg);
+    border-bottom: 1px solid var(--panel-border);
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.toolbar-btn {
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    color: var(--text-primary);
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: bold;
+    transition: all 0.2s;
+}
+
+.toolbar-btn:hover {
+    background-color: var(--item-hover);
+    border-color: var(--panel-border);
+}
+
+.toolbar-btn:active {
+    background-color: var(--item-selected);
+}
+
+.toolbar-btn.active {
+    background-color: var(--panel-border);
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+}
+
+#image-resizer-overlay {
+    position: absolute;
+    border: 1px dashed var(--accent-color);
+    display: none;
+    z-index: 1000;
+    pointer-events: none; /* No interceptar clics sobre la imagen */
+}
+
+.resize-handle {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background-color: var(--accent-color);
+    border: 1px solid white;
+    border-radius: 50%;
+    pointer-events: auto; /* Permitir drag */
+}
+
+.resize-handle.tl { top: -4px; left: -4px; cursor: nw-resize; }
+.resize-handle.tr { top: -4px; right: -4px; cursor: ne-resize; }
+.resize-handle.bl { bottom: -4px; left: -4px; cursor: sw-resize; }
+.resize-handle.br { bottom: -4px; right: -4px; cursor: se-resize; }
+
+.toolbar-select {
+    background-color: var(--input-bg);
+    border: 1px solid var(--input-border);
+    color: var(--text-primary);
+    padding: 5px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    outline: none;
+    cursor: pointer;
+}
+
+.toolbar-color-picker {
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--input-border);
+    border-radius: 4px;
+    background: none;
+    cursor: pointer;
+    padding: 0;
+}
+
+.rich-editor a {
+    color: #4daaf6;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+body[data-theme="light"] .rich-editor a {
+    color: #0e639c;
+}
+
+/* Encabezados dentro del editor para notas */
+.rich-editor h1 {
+    font-size: 24px;
+    margin: 12px 0 6px 0;
+    color: #4daaf6;
+    font-weight: 600;
+}
+
+body[data-theme="light"] .rich-editor h1 {
+    color: #0e639c;
+}
+
+.rich-editor h2 {
+    font-size: 18px;
+    margin: 10px 0 5px 0;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+body[data-theme="light"] .rich-editor h2 {
+    color: #000000; /* Negro para T2 en modo claro */
+}
+
+.rich-editor {
+    flex-grow: 1;
+    height: 100%;
+    padding: 15px;
+    background-color: transparent;
+    border: none;
+    color: #d4d4d4;
+    outline: none;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Más amigable para notas */
+    font-size: 14px;
+    line-height: 1.3;
+    white-space: normal;
+    word-break: break-word;
+    overflow-y: auto;
+}
+
+body[data-theme="light"] .rich-editor {
+    color: #1e1e1e;
+}
+
+/* Imágenes insertadas en línea dentro de la nota */
+.note-inline-image {
+    max-width: 90%;
+    max-height: 380px;
+    margin: 12px auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    display: block;
+    cursor: default;
+    transition: transform 0.2s;
+}
+
+.note-inline-image[style*="width"] {
+    max-width: none;
+    max-height: none;
+}
+
+.rich-editor img[style*="width"] {
+    max-width: none !important;
+    max-height: none !important;
+}
+
+.note-inline-image:hover {
+    transform: scale(1.02);
+}
+
+/* Placeholder para contenteditable */
+.rich-editor:empty:before {
+    content: attr(placeholder);
+    color: #888888;
+    font-style: italic;
+    pointer-events: none;
+}
+
+/* Modo Pantalla Completa (Zen) */
+.code-editor-wrapper.fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2000;
+    background-color: var(--bg-color);
+    padding: 15px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    border-radius: 0; /* Eliminar bordes si los hay */
+}
+
+.code-editor-wrapper.fullscreen .rich-editor {
+    flex-grow: 1;
+    height: 1px !important;
+}
+
+/* Corrección de Color en Modo Oscuro */
+body:not([data-theme="light"]) .rich-editor {
+    color: #ffffff;
+}
+
+body:not([data-theme="light"]) .rich-editor h1,
+body:not([data-theme="light"]) .rich-editor h2 {
+    color: #ffffff;
+}
+

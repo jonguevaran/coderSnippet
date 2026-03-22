@@ -15,7 +15,7 @@
   "license": "ISC",
   "build": {
     "appId": "com.coder.snippetmanager",
-    "productName": "Snippet Manager",
+    "productName": "Eitrion Notas",
     "win": {
       "target": "nsis",
       "icon": "icoEitrion.ico"

@@ -1,5 +1,5 @@
-Snippet Manager - Gestor de Codigo Local
-========================================
+Eitrion Notas - Gestor de Notas Local
+====================================
 
 Creado por Ender Jonel Guevara Narea
 Marca personal: eitrion | eitrion.com
@@ -7,13 +7,14 @@ Contacto: ender.guevaran@eitrion.com
 
 PROPOSITO DEL SISTEMA
 ---------------------
-Snippet Manager es una herramienta disenada para ayudar a programadores
-a organizar sus fragmentos de codigo (snippets) de forma local, sin
+Eitrion Notas es una herramienta disenada para ayudar a programadores
+a organizar sus notas y fragmentos de codigo de forma local, sin
 depender de servicios en la nube.
 
 Con esta aplicacion podras:
-  - Registrar y categorizar snippets por lenguaje de programacion.
-  - Buscar codigo de forma rapida y eficiente.
+  - Registrar y categorizar notas por lenguaje o tema.
+  - Insertar imagenes, stickers y GIFs en linea facilmente.
+  - Buscar contenido de forma rapida y eficiente.
   - Gestionar tus colecciones completamente offline.
 
 INSTALACION
@@ -24,5 +25,5 @@ aplicacion funcione correctamente en tu sistema.
 
 DERECHOS DE AUTOR
 -----------------
-Codigo Snippets (c) 2026 - Todos los derechos reservados.
+Eitrion Notas (c) 2026 - Todos los derechos reservados.
 Este software es de uso personal bajo la marca eitrion.

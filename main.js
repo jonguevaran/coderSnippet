@@ -1,6 +1,7 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
 const CONFIG_FILE_NAME = 'app-config.json';
 const BD_FOLDER_NAME = 'bd';
@@ -15,6 +16,7 @@ let appConfig = null;
 let userDataPath = '';
 let lenguajesPath = '';
 let snippetsPath = '';
+let mediaPath = '';
 
 // Datos iniciales de lenguajes
 const defaultLenguajes = [
@@ -56,6 +58,7 @@ function applyConfig(config) {
   userDataPath = appConfig.bdDirectory;
   lenguajesPath = path.join(userDataPath, 'lenguajes.json');
   snippetsPath = path.join(userDataPath, 'snippets.json');
+  mediaPath = path.join(userDataPath, 'media');
 }
 
 function loadConfig() {
@@ -114,11 +117,11 @@ function createSettingsWindow() {
 
   settingsWindow = new BrowserWindow({
     width: 560,
-    height: 468,
+    height: 550,
     resizable: false,
     autoHideMenuBar: true,
     parent: mainWindow,
-    modal: false,
+    modal: true,
     icon: path.join(__dirname, 'icoEitrion.ico'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -156,6 +159,9 @@ function migrateFiles(fromDir, toDir) {
 function initFiles() {
   if (!fs.existsSync(userDataPath)) {
     fs.mkdirSync(userDataPath, { recursive: true });
+  }
+  if (!fs.existsSync(mediaPath)) {
+    fs.mkdirSync(mediaPath, { recursive: true });
   }
 
   if (!fs.existsSync(lenguajesPath)) {
@@ -227,6 +233,68 @@ app.whenReady().then(() => {
     }
   });
 
+  // === MEDIA HANDLERS ===
+
+  ipcMain.handle('open-image-dialog', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openFile'],
+      filters: [
+        { name: 'Imágenes y GIFs', extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'] }
+      ]
+    });
+    if (result.canceled || !result.filePaths || result.filePaths.length === 0) {
+      return { canceled: true };
+    }
+    return { canceled: false, path: result.filePaths[0] };
+  });
+
+  ipcMain.handle('save-media-file', (event, srcPath) => {
+    try {
+      if (!fs.existsSync(mediaPath)) fs.mkdirSync(mediaPath, { recursive: true });
+      const ext = path.extname(srcPath).toLowerCase();
+      const uid = crypto.randomBytes(8).toString('hex');
+      const fileName = `media_${Date.now()}_${uid}${ext}`;
+      const destPath = path.join(mediaPath, fileName);
+      fs.copyFileSync(srcPath, destPath);
+      return { success: true, fileName };
+    } catch (error) {
+      console.error('Error guardando archivo de media:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('save-media-buffer', (event, { arrayBuffer, ext }) => {
+    try {
+      if (!fs.existsSync(mediaPath)) fs.mkdirSync(mediaPath, { recursive: true });
+      const uid = crypto.randomBytes(8).toString('hex');
+      const fileName = `media_${Date.now()}_${uid}${ext}`;
+      const destPath = path.join(mediaPath, fileName);
+      fs.writeFileSync(destPath, Buffer.from(arrayBuffer));
+      return { success: true, fileName };
+    } catch (error) {
+      console.error('Error guardando buffer de media:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('delete-media-file', (event, fileName) => {
+    try {
+      const filePath = path.join(mediaPath, fileName);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      return { success: true };
+    } catch (error) {
+      console.error('Error eliminando archivo de media:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('get-media-url', (event, fileName) => {
+    const filePath = path.join(mediaPath, fileName);
+    if (!fs.existsSync(filePath)) return null;
+    // Convertir a URL compatible con file:// usando forward slashes
+    return 'file:///' + filePath.replace(/\\/g, '/');
+  });
+
   ipcMain.handle('select-directory', async () => {
     const result = await dialog.showOpenDialog({
       properties: ['openDirectory', 'createDirectory']
@@ -237,6 +305,16 @@ app.whenReady().then(() => {
     }
 
     return { canceled: false, path: result.filePaths[0] };
+  });
+
+  ipcMain.handle('open-external', async (event, url) => {
+    try {
+      await shell.openExternal(url);
+      return { success: true };
+    } catch (error) {
+      console.error('Error abriendo enlace:', error);
+      return { success: false, error: error.message };
+    }
   });
 
   createMainWindow();

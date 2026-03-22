@@ -9,32 +9,47 @@
 <body>
     <main class="settings-container">
         <header class="settings-header">
-            <h1>Panel de Configuracion</h1>
-            <p>Define el autor y el directorio del banco de datos.</p>
+            <h1 data-i18n="settings_title">Panel de Configuración</h1>
+            <p data-i18n="settings_subtitle">Define el autor y el directorio del banco de datos.</p>
         </header>
 
         <form id="settings-form" class="settings-form">
             <div class="form-group">
-                <label for="author-input">Autor</label>
+                <label for="author-input" data-i18n="settings_label_author">Autor</label>
                 <input id="author-input" type="text" placeholder="Nombre del autor">
             </div>
 
             <div class="form-group">
-                <label for="db-directory-input">Directorio para bd</label>
+                <label for="db-directory-input" data-i18n="settings_label_db">Directorio para bd</label>
                 <div class="directory-row">
                     <input id="db-directory-input" type="text" placeholder="Ruta de directorio" required>
-                    <button id="btn-choose-directory" type="button" class="btn btn-secondary">Examinar</button>
+                    <button id="btn-choose-directory" type="button" class="btn btn-secondary" data-i18n="settings_btn_browse">Examinar</button>
                 </div>
-                <small>Si eliges una carpeta padre, la app creara o usara una subcarpeta llamada <strong>bd</strong>.</small>
+                <small data-i18n="settings_small_db">Si eliges una carpeta padre, la app creara o usara una subcarpeta llamada <strong>bd</strong>.</small>
+            </div>
+
+            <div class="form-group checkbox-group" style="display: flex; align-items: center; gap: 8px; margin-top: 15px; justify-content: flex-start;">
+                <input type="checkbox" id="check-show-deleted" style="cursor: pointer; width: auto !important;">
+                <label for="check-show-deleted" style="font-size: 14px; color: var(--text-primary); cursor: pointer;" data-i18n="settings_check_show_deleted">Mostrar notas eliminadas</label>
+            </div>
+
+            <div class="form-group" style="margin-top: 15px;">
+                <label for="select-language" data-i18n="settings_label_language">Idioma / Language</label>
+                <select id="select-language" style="width: 100%; background-color: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-primary); border-radius: 6px; padding: 10px; outline: none; cursor: pointer;">
+                    <option value="es">Español</option>
+                    <option value="pt">Português PT</option>
+                    <option value="en">English</option>
+                </select>
             </div>
 
             <div class="actions">
-                <button id="btn-cancel" type="button" class="btn btn-secondary">Cancelar</button>
-                <button id="btn-save-settings" type="submit" class="btn btn-primary">Guardar</button>
+                <button id="btn-cancel" type="button" class="btn btn-secondary" data-i18n="settings_btn_cancel">Cancelar</button>
+                <button id="btn-save-settings" type="submit" class="btn btn-primary" data-i18n="settings_btn_save">Guardar</button>
             </div>
         </form>
     </main>
 
+    <script src="translations.js"></script>
     <script src="settings.js"></script>
 </body>
 </html>
