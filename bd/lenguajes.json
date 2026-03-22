@@ -1,0 +1,32 @@
+[
+  {
+    "ID": 1,
+    "Nombre": "Visual Basic",
+    "Codigo": "vb",
+    "Activo": false
+  },
+  {
+    "ID": 2,
+    "Nombre": "PowerShell",
+    "Codigo": "ps1",
+    "Activo": false
+  },
+  {
+    "ID": 3,
+    "Nombre": "JavaScript",
+    "Codigo": "js",
+    "Activo": true
+  },
+  {
+    "ID": 4,
+    "Nombre": "HTML",
+    "Codigo": "html",
+    "Activo": true
+  },
+  {
+    "ID": 5,
+    "Nombre": "CSS",
+    "Codigo": "css",
+    "Activo": true
+  }
+]

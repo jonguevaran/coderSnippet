@@ -1,0 +1,35 @@
+{
+  "name": "code-snippet-manager",
+  "version": "1.0.0",
+  "description": "Gestor de Snippets de Código con UI oscura, migrado desde consola",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win"
+  },
+  "keywords": [
+    "snippets",
+    "electron"
+  ],
+  "author": "Ender",
+  "license": "ISC",
+  "build": {
+    "appId": "com.coder.snippetmanager",
+    "productName": "Snippet Manager",
+    "win": {
+      "target": "nsis",
+      "icon": "icoEitrion.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerHeaderIcon": "icoEitrion.ico",
+      "deleteAppDataOnUninstall": false,
+      "license": "build/license.txt"
+    }
+  },
+  "devDependencies": {
+    "electron": "^41.0.3",
+    "electron-builder": "^26.8.1"
+  }
+}

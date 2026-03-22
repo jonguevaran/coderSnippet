@@ -1,0 +1,251 @@
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const path = require('path');
+const fs = require('fs');
+
+const CONFIG_FILE_NAME = 'app-config.json';
+const BD_FOLDER_NAME = 'bd';
+
+// Ruta base: junto al ejecutable en producción, o junto al proyecto en desarrollo.
+const baseDir = app.isPackaged ? path.dirname(app.getPath('exe')) : __dirname;
+const configPath = path.join(baseDir, CONFIG_FILE_NAME);
+
+let mainWindow = null;
+let settingsWindow = null;
+let appConfig = null;
+let userDataPath = '';
+let lenguajesPath = '';
+let snippetsPath = '';
+
+// Datos iniciales de lenguajes
+const defaultLenguajes = [
+  { "ID": 1, "Nombre": "JavaScript", "Codigo": "js", "Activo": true },
+  { "ID": 2, "Nombre": "HTML", "Codigo": "html", "Activo": true },
+  { "ID": 3, "Nombre": "CSS", "Codigo": "css", "Activo": true }
+];
+
+function getDefaultConfig() {
+  return {
+    autor: '',
+    bdDirectory: path.join(baseDir, BD_FOLDER_NAME)
+  };
+}
+
+function normalizeBdDirectory(rawPath) {
+  const defaultPath = path.join(baseDir, BD_FOLDER_NAME);
+  if (!rawPath || typeof rawPath !== 'string') return defaultPath;
+
+  const cleanPath = rawPath.trim();
+  if (!cleanPath) return defaultPath;
+
+  if (path.basename(cleanPath).toLowerCase() === BD_FOLDER_NAME) {
+    return cleanPath;
+  }
+
+  return path.join(cleanPath, BD_FOLDER_NAME);
+}
+
+function applyConfig(config) {
+  const incomingConfig = config && typeof config === 'object' ? config : {};
+
+  appConfig = {
+    ...getDefaultConfig(),
+    ...incomingConfig,
+    bdDirectory: normalizeBdDirectory(incomingConfig.bdDirectory)
+  };
+
+  userDataPath = appConfig.bdDirectory;
+  lenguajesPath = path.join(userDataPath, 'lenguajes.json');
+  snippetsPath = path.join(userDataPath, 'snippets.json');
+}
+
+function loadConfig() {
+  const defaults = getDefaultConfig();
+
+  if (!fs.existsSync(configPath)) {
+    fs.writeFileSync(configPath, JSON.stringify(defaults, null, 2));
+    applyConfig(defaults);
+    return;
+  }
+
+  try {
+    const data = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    applyConfig(data);
+  } catch (error) {
+    console.error('Error leyendo configuración. Se usarán valores por defecto:', error);
+    fs.writeFileSync(configPath, JSON.stringify(defaults, null, 2));
+    applyConfig(defaults);
+  }
+}
+
+function saveConfig(nextConfig) {
+  applyConfig({ ...(appConfig || getDefaultConfig()), ...(nextConfig || {}) });
+  fs.writeFileSync(configPath, JSON.stringify(appConfig, null, 2));
+}
+
+function createMainWindow() {
+  mainWindow = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    autoHideMenuBar: true,
+    icon: path.join(__dirname, 'icoEitrion.ico'),
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true
+    }
+  });
+
+  mainWindow.loadFile('index.html');
+
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    const isRefreshShortcut = (input.control || input.meta) && input.key.toLowerCase() === 'r';
+    if (isRefreshShortcut && input.type === 'keyDown') {
+      event.preventDefault();
+      mainWindow.webContents.send('shortcut-refresh-form');
+    }
+  });
+}
+
+function createSettingsWindow() {
+  if (settingsWindow && !settingsWindow.isDestroyed()) {
+    settingsWindow.focus();
+    return;
+  }
+
+  settingsWindow = new BrowserWindow({
+    width: 560,
+    height: 468,
+    resizable: false,
+    autoHideMenuBar: true,
+    parent: mainWindow,
+    modal: false,
+    icon: path.join(__dirname, 'icoEitrion.ico'),
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true
+    }
+  });
+
+  settingsWindow.loadFile('settings.html');
+  settingsWindow.on('closed', () => {
+    settingsWindow = null;
+  });
+}
+
+// Migrar archivos JSON de un directorio bd a otro
+function migrateFiles(fromDir, toDir) {
+  if (!fromDir || !fs.existsSync(fromDir)) return;
+
+  if (!fs.existsSync(toDir)) {
+    fs.mkdirSync(toDir, { recursive: true });
+  }
+
+  const filesToMigrate = ['lenguajes.json', 'snippets.json'];
+  for (const fileName of filesToMigrate) {
+    const srcPath = path.join(fromDir, fileName);
+    const destPath = path.join(toDir, fileName);
+    if (fs.existsSync(srcPath) && !fs.existsSync(destPath)) {
+      fs.copyFileSync(srcPath, destPath);
+      console.log(`Migrado: ${srcPath} → ${destPath}`);
+    }
+  }
+}
+
+// Inicializar archivos si no existen
+function initFiles() {
+  if (!fs.existsSync(userDataPath)) {
+    fs.mkdirSync(userDataPath, { recursive: true });
+  }
+
+  if (!fs.existsSync(lenguajesPath)) {
+    fs.writeFileSync(lenguajesPath, JSON.stringify(defaultLenguajes, null, 2));
+  }
+  if (!fs.existsSync(snippetsPath)) {
+    fs.writeFileSync(snippetsPath, JSON.stringify([], null, 2));
+  }
+}
+
+app.whenReady().then(() => {
+  loadConfig();
+  initFiles();
+  
+  // Handlers para IPC
+  ipcMain.handle('read-data', (event, fileType) => {
+    try {
+      const filePath = fileType === 'lenguajes' ? lenguajesPath : snippetsPath;
+      if (!fs.existsSync(filePath)) return [];
+      const data = fs.readFileSync(filePath, 'utf-8');
+      return JSON.parse(data);
+    } catch (error) {
+      console.error(`Error leyendo ${fileType}:`, error);
+      return [];
+    }
+  });
+
+  ipcMain.handle('write-data', (event, fileType, data) => {
+    try {
+      const filePath = fileType === 'lenguajes' ? lenguajesPath : snippetsPath;
+      fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+      return { success: true };
+    } catch (error) {
+      console.error(`Error escribiendo ${fileType}:`, error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('open-settings-window', () => {
+    createSettingsWindow();
+    return { success: true };
+  });
+
+  ipcMain.handle('read-app-config', () => {
+    return appConfig;
+  });
+
+  ipcMain.handle('write-app-config', (event, config) => {
+    try {
+      const oldBdDirectory = userDataPath; // capturar antes de aplicar la nueva config
+      saveConfig(config || {});
+
+      // Si el directorio cambió, migrar archivos existentes al nuevo destino
+      if (oldBdDirectory && oldBdDirectory !== userDataPath) {
+        migrateFiles(oldBdDirectory, userDataPath);
+      }
+
+      // Solo crea archivos que aún faltan (defaults) sin sobreescribir los migrados
+      initFiles();
+
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('config-updated', appConfig);
+      }
+
+      return { success: true, config: appConfig };
+    } catch (error) {
+      console.error('Error guardando configuración:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('select-directory', async () => {
+    const result = await dialog.showOpenDialog({
+      properties: ['openDirectory', 'createDirectory']
+    });
+
+    if (result.canceled || !result.filePaths || result.filePaths.length === 0) {
+      return { canceled: true };
+    }
+
+    return { canceled: false, path: result.filePaths[0] };
+  });
+
+  createMainWindow();
+
+  app.on('activate', function () {
+    if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
+  });
+});
+
+app.on('window-all-closed', function () {
+  if (process.platform !== 'darwin') app.quit();
+});

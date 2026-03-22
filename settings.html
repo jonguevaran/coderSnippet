@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuracion</title>
+    <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+    <main class="settings-container">
+        <header class="settings-header">
+            <h1>Panel de Configuracion</h1>
+            <p>Define el autor y el directorio del banco de datos.</p>
+        </header>
+
+        <form id="settings-form" class="settings-form">
+            <div class="form-group">
+                <label for="author-input">Autor</label>
+                <input id="author-input" type="text" placeholder="Nombre del autor">
+            </div>
+
+            <div class="form-group">
+                <label for="db-directory-input">Directorio para bd</label>
+                <div class="directory-row">
+                    <input id="db-directory-input" type="text" placeholder="Ruta de directorio" required>
+                    <button id="btn-choose-directory" type="button" class="btn btn-secondary">Examinar</button>
+                </div>
+                <small>Si eliges una carpeta padre, la app creara o usara una subcarpeta llamada <strong>bd</strong>.</small>
+            </div>
+
+            <div class="actions">
+                <button id="btn-cancel" type="button" class="btn btn-secondary">Cancelar</button>
+                <button id="btn-save-settings" type="submit" class="btn btn-primary">Guardar</button>
+            </div>
+        </form>
+    </main>
+
+    <script src="settings.js"></script>
+</body>
+</html>

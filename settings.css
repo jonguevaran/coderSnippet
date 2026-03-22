@@ -1,0 +1,136 @@
+:root {
+    --bg-color: #1e1e1e;
+    --panel-bg: #252526;
+    --panel-border: #333333;
+    --text-primary: #cccccc;
+    --text-secondary: #999999;
+    --input-bg: #3c3c3c;
+    --input-border: #555555;
+    --accent-color: #0e639c;
+    --accent-hover: #1177bb;
+}
+
+/* === TEMA CLARO === */
+body[data-theme="light"] {
+    --bg-color: #f0f0f0;
+    --panel-bg: #ffffff;
+    --panel-border: #d4d4d4;
+    --text-primary: #1e1e1e;
+    --text-secondary: #6e6e6e;
+    --input-bg: #f7f7f7;
+    --input-border: #c8c8c8;
+    --accent-color: #0065a9;
+    --accent-hover: #0078cc;
+}
+
+/* Transición suave */
+body, body * {
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: radial-gradient(circle at 20% 0%, #2c2c2c, var(--bg-color) 45%);
+    color: var(--text-primary);
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+}
+
+.settings-container {
+    background-color: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 18px;
+}
+
+.settings-header h1 {
+    font-size: 20px;
+    margin-bottom: 6px;
+}
+
+.settings-header p {
+    color: var(--text-secondary);
+    margin-bottom: 18px;
+}
+
+.settings-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.form-group label {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.form-group input {
+    width: 100%;
+    background-color: var(--input-bg);
+    border: 1px solid var(--input-border);
+    color: var(--text-primary);
+    border-radius: 6px;
+    padding: 10px;
+    outline: none;
+}
+
+.form-group input:focus {
+    border-color: var(--accent-color);
+}
+
+.form-group small {
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.directory-row {
+    display: flex;
+    gap: 8px;
+}
+
+.actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.btn {
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    padding: 9px 14px;
+    color: white;
+    font-size: 13px;
+}
+
+.btn-primary {
+    background-color: var(--accent-color);
+}
+
+.btn-primary:hover {
+    background-color: var(--accent-hover);
+}
+
+.btn-secondary {
+    background-color: var(--input-bg);
+}
+
+.btn-secondary:hover {
+    background-color: #4d4d4d;
+}
