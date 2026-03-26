@@ -91,3 +91,13 @@ if (selectLanguage) {
 }
 
 loadCurrentConfig();
+
+// Abrir Guía de Inicio (Leeme)
+const btnReadme = document.getElementById('btn-readme');
+if (btnReadme) {
+    btnReadme.addEventListener('click', () => {
+        if (window.api && window.api.openReadme) {
+            window.api.openReadme();
+        }
+    });
+}

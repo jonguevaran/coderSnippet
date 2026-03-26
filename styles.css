@@ -146,11 +146,12 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s, filter 0.2s;
 }
 
 .folder-item:hover {
-    background-color: var(--item-hover);
+    filter: brightness(1.1); /* Efecto brillo en hover independiente del color */
+    background-color: var(--folder-bg, var(--item-hover));
 }
 
 .folder-info {
@@ -488,7 +489,7 @@ body[data-theme="light"] .view-header {
     border: 1px solid var(--panel-border);
     border-radius: 8px;
     width: 90%;
-    max-width: 500px;
+    max-width: 600px; /* Ampliado 20% de 500px */
     max-height: 80vh;
     display: flex;
     flex-direction: column;
@@ -590,6 +591,7 @@ body[data-theme="light"] .view-header {
 .action-links {
     display: flex;
     gap: 10px;
+    align-items: center; /* Alinear verticalmente los botones */
 }
 .action-link {
     background: none;

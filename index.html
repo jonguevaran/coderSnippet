@@ -86,25 +86,6 @@
                     <input type="text" id="snippet-title" required placeholder="Ej: CONEXIÓN A BD" data-i18n="placeholder_title">
                 </div>
 
-                <div class="form-group">
-                    <label for="snippet-purpose" data-i18n="label_purpose">Propósito</label>
-                    <textarea id="snippet-purpose" rows="3" required placeholder="Ej: Conectar a SQL Server" spellcheck="false" data-i18n="placeholder_purpose"></textarea>
-                </div>
-
-
-                <div class="form-group">
-                    <label for="snippet-author" data-i18n="label_author">Autor</label>
-                    <input type="text" id="snippet-author" required placeholder="Autor de la nota" data-i18n="placeholder_author">
-                </div>
-
-                <div class="form-group">
-                    <label for="snippet-language" data-i18n="label_language">Cuaderno</label>
-                    <input type="text" id="snippet-language" list="language-list" required placeholder="Ej: Notas Personales, Trabajo..." data-i18n="placeholder_language">
-                    <datalist id="language-list">
-                        <!-- Lenguajes se inyectan aquí -->
-                    </datalist>
-                </div>
-
                 <div class="form-group code-group">
                     <label for="snippet-code" data-i18n="placeholder_code">Nota</label>
                     <div class="code-editor-wrapper" style="flex-direction: column;">
@@ -114,6 +95,7 @@
                             <button id="btn-h2" type="button" class="toolbar-btn" title="Título (H1)"><i class="ri-h-1"></i></button>
                             <button id="btn-h3" type="button" class="toolbar-btn" title="Subtítulo (H2)"><i class="ri-h-2"></i></button>
                             <button id="btn-p" type="button" class="toolbar-btn" title="Normal"><i class="ri-paragraph"></i></button>
+                            <button id="btn-list" type="button" class="toolbar-btn" title="Lista"><i class="ri-list-check"></i></button>
                             <select id="select-font-size" class="toolbar-select" title="Tamaño de Fuente">
                                 <option value="3">Normal - Párrafo</option>
                                 <option value="4">Sub Título - H2</option>
@@ -129,6 +111,17 @@
                         <div id="snippet-code" contenteditable="true" class="rich-editor" placeholder="Escribe o pega aquí tu nota..." data-i18n="placeholder_code"></div>
                     </div>
                 </div>
+
+                <div class="form-group">
+                    <label for="snippet-author" data-i18n="label_author">Autor</label>
+                    <input type="text" id="snippet-author" required placeholder="Autor de la nota" data-i18n="placeholder_author">
+                </div>
+
+                <textarea id="snippet-purpose" rows="3" style="display:none;"></textarea>
+                <input type="hidden" id="snippet-language" list="language-list">
+                <datalist id="language-list">
+                    <!-- Lenguajes se inyectan aquí -->
+                </datalist>
                         </button>
                     </div>
                 </div>
@@ -146,8 +139,10 @@
                 </button>
             </div>
             <div class="modal-body">
-                <div class="add-language-form">
-                    <input type="text" id="modal-new-lang-input" placeholder="Nombre del nuevo cuaderno...">
+                <div class="add-language-form" style="display: flex; gap: 8px; align-items: center;">
+                    <input type="text" id="modal-new-lang-input" placeholder="Nombre del nuevo cuaderno..." style="flex-grow: 1;">
+                    <input type="color" id="modal-new-lang-color" value="#1e1e1e" title="Color de fondo" style="width: 36px; height: 36px; padding: 0; border: 1px solid var(--input-border); border-radius: 4px; cursor: pointer;">
+                    <input type="text" id="modal-new-lang-color-hex" value="#1E1E1E" style="width: 85px; padding: 8px; font-family: monospace; text-transform: uppercase; background: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-primary); border-radius: 4px; outline: none;" placeholder="#FFFFFF" maxlength="7">
                     <button id="btn-modal-add-lang" class="btn btn-primary">Agregar</button>
                 </div>
                 <div class="table-container">

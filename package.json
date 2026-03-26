@@ -16,6 +16,9 @@
   "build": {
     "appId": "com.coder.snippetmanager",
     "productName": "Eitrion Notas",
+    "extraFiles": [
+      "README.txt"
+    ],
     "win": {
       "target": "nsis",
       "icon": "icoEitrion.ico"

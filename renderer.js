@@ -13,6 +13,7 @@ let lenguajes = [];
 let currentSnippetId = null;
 let currentFolder = null;
 let appConfig = { autor: '' };
+let hasPendingChanges = false;
 
 // Elementos del DOM (Navegación / Vistas)
 const foldersView = document.getElementById('folders-view');
@@ -58,6 +59,7 @@ const lineNumbersDiv = document.getElementById('line-numbers');
 async function init() {
     await loadDataFromDisk();
     await loadAppConfig();
+    initUnsavedChangesTracking();
     
     renderLanguages();
     switchView('folders');
@@ -74,6 +76,14 @@ async function loadAppConfig() {
     appConfig = config && typeof config === 'object' ? config : { autor: '', idioma: 'es' };
     if (typeof applyLanguage === 'function') {
         applyLanguage(appConfig.idioma || 'es');
+    }
+
+    if (appConfig._configMigrated) {
+        const langCode = appConfig.idioma || 'es';
+        const msg = window.getTranslation
+            ? window.getTranslation(langCode, 'toast_config_migrated')
+            : 'Se conservó tu configuración después de la actualización.';
+        showToast(msg, 'success');
     }
 }
 
@@ -193,6 +203,17 @@ function renderFolders(searchFolderTerm = '') {
         const div = document.createElement('div');
         div.className = 'folder-item';
         
+        if (lang.Color) {
+            div.style.setProperty('--folder-bg', lang.Color);
+            // Calcular brillo para contrastar texto
+            const r = parseInt(lang.Color.substr(1,2), 16);
+            const g = parseInt(lang.Color.substr(3,2), 16);
+            const b = parseInt(lang.Color.substr(5,2), 16);
+            const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+            div.style.color = brightness > 125 ? '#1e1e1e' : '#ffffff';
+            div.style.backgroundColor = 'var(--folder-bg)';
+        }
+        
         div.innerHTML = `
             <div class="folder-info">
                 <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
@@ -212,9 +233,11 @@ function renderFolders(searchFolderTerm = '') {
         });
 
         // Evento entrar a carpeta
-        div.addEventListener('click', () => {
-            switchView('snippets', lang.Nombre);
-            resetForm();
+        div.addEventListener('click', async () => {
+            await withUnsavedChangesGuard(async () => {
+                switchView('snippets', lang.Nombre);
+                resetForm();
+            });
         });
         
         folderList.appendChild(div);
@@ -232,9 +255,11 @@ function renderFolders(searchFolderTerm = '') {
                 <span class="folder-count" style="background: #f44336; color: white;">${deletedCount}</span>
             </div>
         `;
-        div.addEventListener('click', () => {
-            switchView('snippets', 'Eliminados');
-            resetForm();
+        div.addEventListener('click', async () => {
+            await withUnsavedChangesGuard(async () => {
+                switchView('snippets', 'Eliminados');
+                resetForm();
+            });
         });
         folderList.appendChild(div);
     }
@@ -286,14 +311,21 @@ function renderLanguageModalList() {
         
         tr.innerHTML = `
             <td>
-                <span class="lang-name-display">${lang.Nombre}</span>
-                <input type="text" class="lang-name-edit" value="${lang.Nombre}" style="display: none; width: 100%; padding: 4px; background: var(--input-bg); border: 1px solid var(--accent-color); color: #fff; outline: none;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="color-indicator" style="width: 12px; height: 12px; border-radius: 50%; background-color: ${lang.Color || '#1e1e1e'}; border: 1px solid var(--panel-border);"></span>
+                    <span class="lang-name-display">${lang.Nombre}</span>
+                    <input type="text" class="lang-name-edit" value="${lang.Nombre}" style="display: none; flex-grow: 1; padding: 4px; background: var(--input-bg); border: 1px solid var(--accent-color); color: var(--text-primary); outline: none;">
+                    <input type="color" class="lang-color-edit" value="${lang.Color || '#1e1e1e'}" style="display: none; width: 24px; height: 24px; padding: 0; border: none; border-radius: 50%; cursor: pointer;" title="Color del cuaderno">
+                    <input type="text" class="lang-color-edit-hex" value="${(lang.Color || '#1e1e1e').toUpperCase()}" style="display: none; width: 68px; padding: 3px 4px; font-size: 11px; font-family: monospace; text-transform: uppercase; background: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-primary); border-radius: 3px;" maxlength="7" placeholder="#FFFFFF">
+                </div>
             </td>
             <td><span class="status-badge ${isActive ? 'status-active' : 'status-inactive'}">${isActive ? 'Activo' : 'Inactivo'}</span></td>
-            <td class="action-links">
-                <button class="action-link edit btn-edit-lang">Editar</button>
-                <button class="action-link edit btn-save-lang" style="display: none;">Guardar</button>
-                <button class="action-link toggle btn-toggle-lang">${isActive ? 'Desactivar' : 'Activar'}</button>
+            <td>
+                <div class="action-links">
+                    <button class="action-link edit btn-edit-lang">Editar</button>
+                    <button class="action-link edit btn-save-lang" style="display: none;">Guardar</button>
+                    <button class="action-link toggle btn-toggle-lang">${isActive ? 'Desactivar' : 'Activar'}</button>
+                </div>
             </td>
         `;
 
@@ -306,6 +338,10 @@ function renderLanguageModalList() {
         btnEdit.addEventListener('click', () => {
             nameDisplay.style.display = 'none';
             nameEdit.style.display = 'block';
+            const colorEdit = tr.querySelector('.lang-color-edit');
+            const colorEditHex = tr.querySelector('.lang-color-edit-hex');
+            if (colorEdit) colorEdit.style.display = 'inline-block';
+            if (colorEditHex) colorEditHex.style.display = 'inline-block';
             btnEdit.style.display = 'none';
             btnSave.style.display = 'inline-block';
             nameEdit.focus();
@@ -315,23 +351,32 @@ function renderLanguageModalList() {
         btnSave.addEventListener('click', async () => {
             const newName = nameEdit.value.trim();
             const formattedName = newName.charAt(0).toUpperCase() + newName.slice(1);
-            
-            if (formattedName && formattedName !== lang.Nombre) {
+            if (formattedName) {
                 const exists = lenguajes.find(l => l.Nombre.toLowerCase() === formattedName.toLowerCase() && l.ID !== lang.ID);
                 if (exists) {
                     showToast('Ese nombre ya está en uso.', 'error');
                     return;
                 }
                 
-                // Actualizar snippets que tenían este lenguaje
+                // Actualizar snippets que tenían este lenguaje si el nombre cambió
                 const oldName = lang.Nombre;
-                snippets.forEach(s => {
-                    if (s.Lenguaje === oldName) s.Lenguaje = formattedName;
-                });
-                await window.api.writeData('snippets', snippets);
+                if (formattedName !== oldName) {
+                    snippets.forEach(s => {
+                        if (s.Lenguaje === oldName) s.Lenguaje = formattedName;
+                    });
+                    await window.api.writeData('snippets', snippets);
+                }
+
+                const colorEdit = tr.querySelector('.lang-color-edit');
+                const colorEditHex = tr.querySelector('.lang-color-edit-hex');
+                let newColor = colorEdit ? colorEdit.value : lang.Color;
+                if (colorEditHex && /^#[0-9A-F]{6}$/i.test(colorEditHex.value)) {
+                    newColor = colorEditHex.value;
+                }
 
                 lang.Nombre = formattedName;
                 lang.Codigo = formattedName.toLowerCase();
+                lang.Color = newColor; // Guardar color
                 await window.api.writeData('lenguajes', lenguajes);
             }
             renderLanguageModalList();
@@ -344,6 +389,21 @@ function renderLanguageModalList() {
             renderLanguageModalList();
         });
 
+        // Sincronizar selectores de color en edición
+        const colorEdit = tr.querySelector('.lang-color-edit');
+        const colorEditHex = tr.querySelector('.lang-color-edit-hex');
+        if (colorEdit && colorEditHex) {
+            colorEdit.addEventListener('input', (e) => {
+                colorEditHex.value = e.target.value.toUpperCase();
+            });
+            colorEditHex.addEventListener('input', (e) => {
+                const val = e.target.value;
+                if (/^#[0-9A-F]{6}$/i.test(val)) {
+                    colorEdit.value = val;
+                }
+            });
+        }
+
         modalLanguageList.appendChild(tr);
     });
 }
@@ -354,6 +414,13 @@ btnModalAddLang.addEventListener('click', async (e) => {
     const name = modalNewLangInput.value.trim();
     if (!name) return;
     
+    const colorInput = document.getElementById('modal-new-lang-color');
+    const colorInputHex = document.getElementById('modal-new-lang-color-hex');
+    let color = colorInput ? colorInput.value : '#1e1e1e';
+    if (colorInputHex && /^#[0-9A-F]{6}$/i.test(colorInputHex.value.trim())) {
+        color = colorInputHex.value.trim();
+    }
+
     const formattedName = name.charAt(0).toUpperCase() + name.slice(1);
     
     const exists = lenguajes.find(l => l.Nombre.toLowerCase() === formattedName.toLowerCase());
@@ -366,7 +433,7 @@ btnModalAddLang.addEventListener('click', async (e) => {
         }
     } else {
         const newId = lenguajes.length > 0 ? Math.max(...lenguajes.map(l => l.ID)) + 1 : 1;
-        lenguajes.push({ ID: newId, Nombre: formattedName, Codigo: formattedName.toLowerCase(), Activo: true });
+        lenguajes.push({ ID: newId, Nombre: formattedName, Codigo: formattedName.toLowerCase(), Activo: true, Color: color });
     }
     
     const result = await window.api.writeData('lenguajes', lenguajes);
@@ -406,6 +473,53 @@ function normalizeString(str) {
     return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
+function hasUnsavedChanges() {
+    return hasPendingChanges;
+}
+
+function markCurrentStateAsSaved() {
+    hasPendingChanges = false;
+}
+
+function initUnsavedChangesTracking() {
+    const markDirty = () => {
+        hasPendingChanges = true;
+    };
+
+    const trackedInputs = [inputTitle, inputPurpose, inputAuthor, inputLanguage];
+    trackedInputs.forEach((el) => {
+        if (!el) return;
+        el.addEventListener('input', markDirty);
+        el.addEventListener('change', markDirty);
+    });
+
+    if (inputCode) {
+        inputCode.addEventListener('input', markDirty);
+    }
+}
+
+async function withUnsavedChangesGuard(action) {
+    if (!hasUnsavedChanges()) {
+        await action();
+        return;
+    }
+
+    const langCode = appConfig.idioma || 'es';
+    const msg = window.getTranslation
+        ? window.getTranslation(langCode, 'confirm_apply_changes')
+        : 'Desea aplicar cambios?';
+
+    if (confirm(msg)) {
+        const saved = await saveSnippet();
+        if (!saved) {
+            const discard = confirm('No se pudo guardar. ¿Desea continuar sin guardar?');
+            if (!discard) return;
+        }
+    }
+
+    await action();
+}
+
 // Renderizar Snippets en el Panel Izquierdo (por carpeta actual)
 function renderSnippets(searchTerm = '') {
     snippetList.innerHTML = '';
@@ -438,7 +552,11 @@ function renderSnippets(searchTerm = '') {
     filtered.sort((a, b) => a.Titulo.localeCompare(b.Titulo)).forEach(snippet => {
         const div = document.createElement('div');
         div.className = `snippet-item ${currentSnippetId === snippet.ID ? 'active' : ''}`;
-        div.onclick = () => selectSnippet(snippet.ID);
+        div.onclick = async () => {
+            await withUnsavedChangesGuard(async () => {
+                await selectSnippet(snippet.ID);
+            });
+        };
         
         const titleDiv = document.createElement('div');
         titleDiv.className = 'snippet-item-title';
@@ -463,9 +581,9 @@ async function selectSnippet(id) {
     currentSnippetId = snippet.ID;
     inputId.value = snippet.ID;
     inputTitle.value = snippet.Titulo;
-    inputPurpose.value = snippet.Proposito;
+    if (inputPurpose) inputPurpose.value = snippet.Proposito;
     inputAuthor.value = snippet.Autor || appConfig.autor || '';
-    inputLanguage.value = snippet.Lenguaje;
+    if (inputLanguage) inputLanguage.value = snippet.Lenguaje;
 
     // Cargar contenido enriquecido con portabilidad
     const mediaDirUrl = await window.api.getMediaUrl('');
@@ -480,6 +598,7 @@ async function selectSnippet(id) {
     if (btnRestore) btnRestore.style.display = isDeleted ? 'block' : 'none';
     
     renderSnippets(searchInput.value);
+    markCurrentStateAsSaved();
 }
 
 // Funcionalidad "Nuevo" / "Cancelar"
@@ -488,17 +607,19 @@ function resetForm() {
     
     inputId.value = '';
     inputTitle.value = '';
-    inputPurpose.value = '';
+    if (inputPurpose) inputPurpose.value = '';
     inputAuthor.value = appConfig.autor || '';
-    inputLanguage.value = currentFolder || ''; // Prellenar con la carpeta actual si estamos en una
+    if (inputLanguage) inputLanguage.value = currentFolder || ''; // Prellenar con la carpeta actual si estamos en una
     inputCode.innerHTML = ''; // Limpiar div
 
     btnDelete.style.display = 'none';
-    if(currentFolder) inputTitle.focus();
+    inputTitle.focus();
     
     if (snippetsView.style.display !== 'none') {
         renderSnippets(searchInput.value);
     }
+
+    markCurrentStateAsSaved();
 }
 
 // Procesar el lenguaje ingresado (Simplificado)
@@ -515,13 +636,19 @@ function formatLanguage(userInput) {
 async function saveSnippet() {
     if (!snippetForm.checkValidity()) {
         snippetForm.reportValidity();
-        return;
+        return false;
     }
 
     const title = inputTitle.value.trim().toUpperCase();
-    const purpose = inputPurpose.value.trim();
+    let purpose = inputPurpose && typeof inputPurpose.value === 'string' ? inputPurpose.value.trim() : '';
+    if (!purpose) {
+        purpose = title;
+        if (inputPurpose) inputPurpose.value = purpose;
+    }
     const author = inputAuthor.value.trim() || appConfig.autor || '';
-    const rawLanguage = inputLanguage.value.trim();
+    const rawLanguage = inputLanguage && typeof inputLanguage.value === 'string'
+        ? inputLanguage.value.trim()
+        : (currentFolder || 'General');
     const formattedLanguage = formatLanguage(rawLanguage);
     
     // Convertir rutas absolutas a portables antes de guardar
@@ -548,7 +675,10 @@ async function saveSnippet() {
 
     const result = await window.api.writeData('snippets', snippets);
     if (result.success) {
-        inputLanguage.value = formattedLanguage;
+        inputTitle.value = title;
+        if (inputPurpose) inputPurpose.value = purpose;
+        inputAuthor.value = author;
+        if (inputLanguage) inputLanguage.value = formattedLanguage;
         btnDelete.style.display = 'block';
         
         // Si el lenguaje guardado es distinto a la carpeta actual, volvemos a renderizar carpetas para actualizar conteo
@@ -556,9 +686,12 @@ async function saveSnippet() {
         if (snippetsView.style.display !== 'none') {
             renderSnippets(searchInput.value);
         }
+        markCurrentStateAsSaved();
         showToast("¡Nota guardada con éxito!", 'success');
+        return true;
     } else {
         showToast("Error al guardar: " + result.error, 'error');
+        return false;
     }
 }
 
@@ -692,14 +825,24 @@ btnCopy.addEventListener('click', async (e) => {
 });
 
 // Event Listeners Base
-btnNew.addEventListener('click', (e) => { e.preventDefault(); resetForm(); });
+btnNew.addEventListener('click', async (e) => {
+    e.preventDefault();
+    await withUnsavedChangesGuard(async () => {
+        resetForm();
+    });
+});
 btnRefresh.addEventListener('click', async (e) => {
     e.preventDefault();
     await refreshFormData(true);
 });
 btnSave.addEventListener('click', (e) => { e.preventDefault(); saveSnippet(); });
 btnDelete.addEventListener('click', (e) => { e.preventDefault(); deleteSnippet(); });
-btnCancel.addEventListener('click', (e) => { e.preventDefault(); resetForm(); });
+btnCancel.addEventListener('click', async (e) => {
+    e.preventDefault();
+    await withUnsavedChangesGuard(async () => {
+        resetForm();
+    });
+});
 
 // --- FUNCIONALIDAD BARRA DE HERRAMIENTAS (RICH TEXT) ---
 const btnBold = document.getElementById('btn-bold');
@@ -738,9 +881,6 @@ if (btnP) {
         e.preventDefault();
         document.execCommand('formatBlock', false, '<div>');
         if (selectFontSize) selectFontSize.value = '3'; // Normal
-        // Aplicar color negro por defecto si está en modo claro
-        const isLight = document.body.getAttribute('data-theme') === 'light';
-        document.execCommand('foreColor', false, isLight ? '#101010' : '#cccccc');
     });
 }
 
@@ -822,7 +962,13 @@ if (inputCode) {
     });
 }
 
-btnBackFolders.addEventListener('click', (e) => { e.preventDefault(); switchView('folders'); resetForm(); });
+btnBackFolders.addEventListener('click', async (e) => {
+    e.preventDefault();
+    await withUnsavedChangesGuard(async () => {
+        switchView('folders');
+        resetForm();
+    });
+});
 btnSettings.addEventListener('click', async (e) => {
     e.preventDefault();
     await window.api.openSettingsWindow();
@@ -1027,6 +1173,12 @@ window.addEventListener('focus', async () => {
     }
 });
 
+window.addEventListener('beforeunload', (e) => {
+    if (!hasUnsavedChanges()) return;
+    e.preventDefault();
+    e.returnValue = '';
+});
+
 function applyLanguage(lang) {
     if (!window.getTranslation) return;
     document.title = window.getTranslation(lang, 'title');
@@ -1037,6 +1189,47 @@ function applyLanguage(lang) {
             el.placeholder = translation;
         } else {
             el.innerText = translation;
+        }
+    });
+}
+
+// --- ATATATAJOS DE TECLADO ---
+window.addEventListener('keydown', (e) => {
+    // Ctrl + E: Alternar Modo Expandido
+    if (e.ctrlKey && e.key.toLowerCase() === 'e') {
+        e.preventDefault();
+        const btnFullscreen = document.getElementById('btn-fullscreen');
+        if (btnFullscreen) {
+            btnFullscreen.dispatchEvent(new MouseEvent('mousedown'));
+        }
+    }
+    // Ctrl + S: Guardar
+    if (e.ctrlKey && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        saveSnippet();
+    }
+});
+
+// --- FUNCIONALIDAD BOTÓN LISTA ---
+const btnList = document.getElementById('btn-list');
+if (btnList) {
+    btnList.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        insertHTMLAtCursor('&nbsp;&nbsp;&nbsp;&nbsp;•&nbsp;');
+    });
+}
+
+// --- SINCRONIZACIÓN SELECTOR DE COLOR CREACIÓN ---
+const modalNewColor = document.getElementById('modal-new-lang-color');
+const modalNewColorHex = document.getElementById('modal-new-lang-color-hex');
+if (modalNewColor && modalNewColorHex) {
+    modalNewColor.addEventListener('input', (e) => {
+        modalNewColorHex.value = e.target.value.toUpperCase();
+    });
+    modalNewColorHex.addEventListener('input', (e) => {
+        const val = e.target.value;
+        if (/^#[0-9A-F]{6}$/i.test(val)) {
+            modalNewColor.value = val;
         }
     });
 }

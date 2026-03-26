@@ -35,8 +35,10 @@ window.translations = {
         "settings_label_language": "Idioma / Language",
         "settings_btn_cancel": "Cancelar",
         "settings_btn_save": "Guardar",
+        "confirm_apply_changes": "Desea aplicar cambios?",
         "confirm_delete_note": "¿Estás seguro de eliminar esta nota?",
-        "confirm_delete_folder": "¿Estás seguro de eliminar este cuaderno? Sus notas no serán borradas físicamente pero desaparecerá de la lista."
+        "confirm_delete_folder": "¿Estás seguro de eliminar este cuaderno? Sus notas no serán borradas físicamente pero desaparecerá de la lista.",
+        "toast_config_migrated": "Se conservó tu configuración después de la actualización."
     },
     pt: {
         "title": "Eitrion Notas",
@@ -74,8 +76,10 @@ window.translations = {
         "settings_label_language": "Idioma / Language",
         "settings_btn_cancel": "Cancelar",
         "settings_btn_save": "Salvar",
+        "confirm_apply_changes": "Deseja aplicar as alterações?",
         "confirm_delete_note": "Tem certeza que deseja excluir esta nota?",
-        "confirm_delete_folder": "Tem certeza que deseja excluir este caderno? Suas notas não serão apagadas fisicamente, mas desaparecerá da lista."
+        "confirm_delete_folder": "Tem certeza que deseja excluir este caderno? Suas notas não serão apagadas fisicamente, mas desaparecerá da lista.",
+        "toast_config_migrated": "Sua configuração foi preservada após a atualização."
     },
     en: {
         "title": "Eitrion Notes",
@@ -113,8 +117,10 @@ window.translations = {
         "settings_label_language": "Language",
         "settings_btn_cancel": "Cancel",
         "settings_btn_save": "Save",
+        "confirm_apply_changes": "Do you want to apply changes?",
         "confirm_delete_note": "Are you sure you want to delete this note?",
-        "confirm_delete_folder": "Are you sure you want to delete this workbook? Its notes won't be physically deleted but it won't be listed."
+        "confirm_delete_folder": "Are you sure you want to delete this workbook? Its notes won't be physically deleted but it won't be listed.",
+        "toast_config_migrated": "Your configuration was preserved after the update."
     }
 };
 

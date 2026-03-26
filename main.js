@@ -8,11 +8,15 @@ const BD_FOLDER_NAME = 'bd';
 
 // Ruta base: junto al ejecutable en producción, o junto al proyecto en desarrollo.
 const baseDir = app.isPackaged ? path.dirname(app.getPath('exe')) : __dirname;
-const configPath = path.join(baseDir, CONFIG_FILE_NAME);
+// Configuracion persistente: vive en userData para sobrevivir actualizaciones/reinstalaciones.
+const persistentConfigPath = path.join(app.getPath('userData'), CONFIG_FILE_NAME);
+// Ruta antigua (legacy) para migracion de instalaciones previas.
+const legacyConfigPath = path.join(baseDir, CONFIG_FILE_NAME);
 
 let mainWindow = null;
 let settingsWindow = null;
 let appConfig = null;
+let configMigratedThisBoot = false;
 let userDataPath = '';
 let lenguajesPath = '';
 let snippetsPath = '';
@@ -63,26 +67,39 @@ function applyConfig(config) {
 
 function loadConfig() {
   const defaults = getDefaultConfig();
+  configMigratedThisBoot = false;
 
-  if (!fs.existsSync(configPath)) {
-    fs.writeFileSync(configPath, JSON.stringify(defaults, null, 2));
+  // Migracion one-time desde ubicacion legacy (carpeta instalacion/proyecto) a userData.
+  if (!fs.existsSync(persistentConfigPath) && fs.existsSync(legacyConfigPath)) {
+    try {
+      fs.mkdirSync(path.dirname(persistentConfigPath), { recursive: true });
+      fs.copyFileSync(legacyConfigPath, persistentConfigPath);
+      configMigratedThisBoot = true;
+      console.log(`Configuracion migrada: ${legacyConfigPath} -> ${persistentConfigPath}`);
+    } catch (migrationError) {
+      console.error('Error migrando configuracion legacy:', migrationError);
+    }
+  }
+
+  if (!fs.existsSync(persistentConfigPath)) {
+    fs.writeFileSync(persistentConfigPath, JSON.stringify(defaults, null, 2));
     applyConfig(defaults);
     return;
   }
 
   try {
-    const data = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    const data = JSON.parse(fs.readFileSync(persistentConfigPath, 'utf-8'));
     applyConfig(data);
   } catch (error) {
     console.error('Error leyendo configuración. Se usarán valores por defecto:', error);
-    fs.writeFileSync(configPath, JSON.stringify(defaults, null, 2));
+    fs.writeFileSync(persistentConfigPath, JSON.stringify(defaults, null, 2));
     applyConfig(defaults);
   }
 }
 
 function saveConfig(nextConfig) {
   applyConfig({ ...(appConfig || getDefaultConfig()), ...(nextConfig || {}) });
-  fs.writeFileSync(configPath, JSON.stringify(appConfig, null, 2));
+  fs.writeFileSync(persistentConfigPath, JSON.stringify(appConfig, null, 2));
 }
 
 function createMainWindow() {
@@ -117,7 +134,7 @@ function createSettingsWindow() {
 
   settingsWindow = new BrowserWindow({
     width: 560,
-    height: 550,
+    height: 620, // Aumentado para mostrar todas las opciones
     resizable: false,
     autoHideMenuBar: true,
     parent: mainWindow,
@@ -206,7 +223,10 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle('read-app-config', () => {
-    return appConfig;
+    return {
+      ...appConfig,
+      _configMigrated: configMigratedThisBoot
+    };
   });
 
   ipcMain.handle('write-app-config', (event, config) => {
@@ -313,6 +333,17 @@ app.whenReady().then(() => {
       return { success: true };
     } catch (error) {
       console.error('Error abriendo enlace:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('open-readme', async () => {
+    try {
+      const readmePath = path.join(baseDir, 'README.txt');
+      await shell.openPath(readmePath);
+      return { success: true };
+    } catch (error) {
+      console.error('Error abriendo README:', error);
       return { success: false, error: error.message };
     }
   });

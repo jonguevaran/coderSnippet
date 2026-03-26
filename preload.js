@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('api', {
   deleteMediaFile: (fileName) => ipcRenderer.invoke('delete-media-file', fileName),
   getMediaUrl: (fileName) => ipcRenderer.invoke('get-media-url', fileName),
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
+  openReadme: () => ipcRenderer.invoke('open-readme'),
   onShortcutRefreshForm: (callback) => {
     const listener = () => callback();
     ipcRenderer.on('shortcut-refresh-form', listener);
